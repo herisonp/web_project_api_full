@@ -1,0 +1,4 @@
+# Arquivos do sistema e pastas de configurações IDE
+.DS_Store
+.idea
+.vscode
