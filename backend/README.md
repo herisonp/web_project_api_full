@@ -2,6 +2,10 @@
 
 Bootcamp Desenvolvimento Web - TripleTen
 
+## Deploy
+
+https://api.around.herisonpereira.com.br/
+
 ## 🚀 Tecnologias
 
 Esse projeto foi desenvolvido com as seguintes tecnologias:
@@ -9,19 +13,21 @@ Esse projeto foi desenvolvido com as seguintes tecnologias:
 - JavaScript
 - Node
 - Express
+- MongoDB e Mongoose
+- JWT
 - Git e GitHub
+- Deploy com VM Google Cloud
 
 ## 💻 Projeto
 
-Projeto criado durante o bootcamp de desenvolvimento web da TripleTen, para validação de aprendizados de como criar uma API utilizando Node e Express.
+Projeto criado durante o bootcamp de desenvolvimento web da TripleTen, para validação de aprendizados de como criar uma API utilizando Node, Express e MongoDB com Mongoose.
 
 ## 🧪 Melhorias
 
 Algumas melhorias que podem ser aplicadas:
 
 - Criação de rota GET por ID de Card
-- Implementação com banco de dados
-- Rotas restantes de CRUD para os Cards e Users
+- Possibilidade do usuário excluir sua conta
 
 ## ⚙ Instruções para rodar local
 
@@ -43,10 +49,27 @@ Se tudo deu certo, o servidor está pronto para uso.
 
 URL Base: [http://localhost:3000](http://localhost:3000)
 
-### 🚦 Rotas GET
+### 🚦 Rotas
 
-Faça requisições concatenando a URL base `http://localhost:3000`
+Faça requisições concatenando a URL base `http://localhost:3000` ou `https://api.around.herisonpereira.com.br`
 
-- `/users`
-- `/users/:id`
-- `/cards`
+#### Auth
+
+- `POST /signup`
+- `POST /signin`
+
+#### users
+
+- `GET /users`
+- `GET /users/{userId}`
+- `GET /users/me`
+- `PATCH /users/me`
+- `PATCH /users/me/avatar`
+
+#### cards
+
+- `GET /cards`
+- `POST /cards`
+- `DELETE /cards/{cardId}`
+- `PUT /cards/{cardId}/likes`
+- `DELETE /cards/{cardId}/likes`
