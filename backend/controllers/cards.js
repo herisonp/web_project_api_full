@@ -77,8 +77,8 @@ function likeCard(req, res, next) {
       err.statusCode = 404;
       throw err;
     })
-    .then(() => {
-      res.send({ message: 'Like com sucesso' });
+    .then((card) => {
+      res.send({ data: card });
     })
     .catch(next);
 }
@@ -102,8 +102,8 @@ function dislikeCard(req, res, next) {
       err.statusCode = 404;
       throw err;
     })
-    .then(() => {
-      res.send({ message: 'Dislike com sucesso' });
+    .then((card) => {
+      res.send({ data: card });
     })
     .catch(next);
 }
