@@ -1,68 +1,101 @@
+require('dotenv').config();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
-function getUsers(req, res) {
+const { NODE_ENV, JWT_SECRET } = process.env;
+
+function getUsers(req, res, next) {
   return User.find({})
     .then((users) => {
       if (!users) {
         const err = new Error('Ocorreu um erro ao buscar usuários');
-        err.status = 500;
+        err.statusCode = 500;
         throw err;
       }
       res.send({ data: users });
     })
-    .catch((err) => {
-      console.log('getUsers Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function getUserById(req, res) {
+function getUserById(req, res, next) {
   const { userId } = req.params;
   return User.findById(userId)
     .orFail(() => {
       const err = new Error('Usuário não encontrado');
-      err.status = 404;
+      err.statusCode = 404;
       throw err;
     })
     .then((user) => {
       res.send({ data: user });
     })
-    .catch((err) => {
-      console.log('getUserById Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function createUser(req, res) {
-  const { name, about, avatar } = req.body;
+function getUserMe(req, res, next) {
+  const { user } = req;
+  return User.findById(user._id)
+    .orFail(() => {
+      const err = new Error('Usuário não encontrado');
+      err.statusCode = 404;
+      throw err;
+    })
+    .then((userData) => {
+      res.send({ data: userData });
+    })
+    .catch(next);
+}
 
-  if (!name || !about || !avatar) {
-    return res.status(400).send({ error: 'Dados inválidos...' });
+function createUser(req, res, next) {
+  const { name, about, avatar, email, password } = req.body;
+  try {
+    if (!email || !password) {
+      const err = new Error('Dados inválidos...');
+      err.statusCode = 400;
+      throw err;
+    }
+  } catch (error) {
+    next(error);
   }
 
-  return User.create({
-    name,
-    about,
-    avatar,
-  })
+  bcrypt
+    .hash(password, 10)
+    .then((hash) =>
+      User.create({
+        name,
+        about,
+        avatar,
+        email,
+        password: hash,
+      }),
+    )
     .then((user) => {
-      if (!user) {
-        const err = new Error('Ocorreu um erro ao criar usuário');
-        err.status = 500;
-        throw err;
-      }
-      res.send({ data: user });
+      res.status(201).send({
+        data: {
+          name: user.name,
+          about: user.about,
+          avatar: user.avatar,
+          email: user.email,
+        },
+      });
     })
-    .catch((err) => {
-      console.log('createUser Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function updateUserProfile(req, res) {
+function updateUserProfile(req, res, next) {
   const { name, about } = req.body;
   const userId = req.user._id;
   const userUpdated = {};
+
+  try {
+    if (!name && !about) {
+      const err = new Error('Dados inválidos...');
+      err.statusCode = 400;
+      throw err;
+    }
+  } catch (error) {
+    next(error);
+  }
 
   if (name) {
     userUpdated.name = name;
@@ -71,33 +104,32 @@ function updateUserProfile(req, res) {
     userUpdated.about = about;
   }
 
-  if (!name && !about) {
-    return res.status(400).send({ error: 'Dados inválidos...' });
-  }
-
   return User.findByIdAndUpdate(userId, userUpdated, {
     new: true,
   })
     .orFail(() => {
       const err = new Error('Usuário não encontrado');
-      err.status = 404;
+      err.statusCode = 404;
       throw err;
     })
     .then((user) => {
       res.send({ data: user });
     })
-    .catch((err) => {
-      console.log('updateUserProfile Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function updateUserAvatar(req, res) {
+function updateUserAvatar(req, res, next) {
   const { avatar } = req.body;
   const userId = req.user._id;
 
-  if (!avatar) {
-    return res.status(400).send({ error: 'Dados inválidos...' });
+  try {
+    if (!avatar) {
+      const err = new Error('Dados inválidos...');
+      err.statusCode = 400;
+      throw err;
+    }
+  } catch (error) {
+    next(error);
   }
 
   return User.findByIdAndUpdate(
@@ -111,22 +143,52 @@ function updateUserAvatar(req, res) {
   )
     .orFail(() => {
       const err = new Error('Usuário não encontrado');
-      err.status = 404;
+      err.statusCode = 404;
       throw err;
     })
     .then((user) => {
       res.send({ data: user });
     })
-    .catch((err) => {
-      console.log('updateUserAvatar Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
+}
+
+function login(req, res, next) {
+  const { email, password } = req.body;
+  try {
+    if (!email && !password) {
+      const err = new Error('Dados inválidos...');
+      err.statusCode = 400;
+      throw err;
+    }
+  } catch (error) {
+    next(error);
+  }
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        { _id: user._id },
+        NODE_ENV === 'production' ? JWT_SECRET : 'super-strong-secret',
+        {
+          expiresIn: '7d',
+        },
+      );
+      if (!token) {
+        const err = new Error('Token inválido...');
+        err.statusCode = 401;
+        throw err;
+      }
+      res.send({ token });
+    })
+    .catch(next);
 }
 
 module.exports = {
   getUsers,
   getUserById,
+  getUserMe,
   createUser,
   updateUserProfile,
   updateUserAvatar,
+  login,
 };

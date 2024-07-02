@@ -1,26 +1,28 @@
 const Card = require('../models/card');
 
-function getCards(req, res) {
+function getCards(req, res, next) {
   return Card.find({})
     .then((cards) => {
       if (!cards) {
         const err = new Error('Ocorreu um erro ao buscar cards');
-        err.status = 500;
+        err.statusCode = 500;
         throw err;
       }
       res.send({ data: cards });
     })
-    .catch((err) => {
-      console.log('getCards Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function createCard(req, res) {
+function createCard(req, res, next) {
   const { name, link } = req.body;
-
-  if (!name || !link) {
-    return res.status(400).send({ error: 'Dados inválidos...' });
+  try {
+    if (!name || !link) {
+      const err = new Error('Dados inválidos...');
+      err.statusCode = 500;
+      throw err;
+    }
+  } catch (error) {
+    next(error);
   }
 
   const newCard = {
@@ -33,35 +35,30 @@ function createCard(req, res) {
     .then((card) => {
       if (!card) {
         const err = new Error('Ocorreu um erro ao criar card');
-        err.status = 500;
+        err.statusCode = 500;
         throw err;
       }
       res.send({ data: card });
     })
-    .catch((err) => {
-      console.log('createCard Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function deleteCardById(req, res) {
+function deleteCardById(req, res, next) {
   const { cardId } = req.params;
-  return Card.deleteOne({ _id: cardId })
+  const { user } = req;
+  return Card.findOneAndDelete({ _id: cardId, owner: user._id })
     .orFail(() => {
       const err = new Error('Erro ao deletar este card');
-      err.status = 400;
+      err.statusCode = 401;
       throw err;
     })
     .then(() => {
       res.send({ message: 'Card deletado com sucesso' });
     })
-    .catch((err) => {
-      console.log('deleteCardById Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function likeCard(req, res) {
+function likeCard(req, res, next) {
   const { cardId } = req.params;
   const userId = req.user._id;
   return Card.findByIdAndUpdate(
@@ -77,19 +74,16 @@ function likeCard(req, res) {
   )
     .orFail(() => {
       const err = new Error('Card não encontrado');
-      err.status = 404;
+      err.statusCode = 404;
       throw err;
     })
     .then(() => {
       res.send({ message: 'Like com sucesso' });
     })
-    .catch((err) => {
-      console.log('likeCard Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
-function dislikeCard(req, res) {
+function dislikeCard(req, res, next) {
   const { cardId } = req.params;
   const userId = req.user._id;
   return Card.findByIdAndUpdate(
@@ -105,16 +99,13 @@ function dislikeCard(req, res) {
   )
     .orFail(() => {
       const err = new Error('Card não encontrado');
-      err.status = 404;
+      err.statusCode = 404;
       throw err;
     })
     .then(() => {
       res.send({ message: 'Dislike com sucesso' });
     })
-    .catch((err) => {
-      console.log('dislikeCard Error:', err);
-      res.status(err.status).send({ error: err.message });
-    });
+    .catch(next);
 }
 
 module.exports = {
